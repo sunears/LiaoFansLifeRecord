@@ -70,6 +70,57 @@ VITE_API_KEY=your_actual_api_key_here
 npm run dev
 ```
 
+## Docker 部署说明
+
+如果你希望将本项目容器化部署，请按照以下步骤操作。
+
+### 1. 创建 Dockerfile
+在项目根目录下创建一个名为 `Dockerfile` 的文件，内容如下：
+
+```dockerfile
+# 构建阶段
+FROM node:18-alpine as builder
+WORKDIR /app
+
+# 复制依赖定义
+COPY package*.json ./
+RUN npm install
+
+# 复制源代码
+COPY . .
+
+# 接收构建参数 (API Key)
+# 注意：这会将 Key 打包进前端静态资源中，请确保部署环境安全
+ARG VITE_API_KEY
+ENV VITE_API_KEY=$VITE_API_KEY
+
+# 构建生产环境代码
+RUN npm run build
+
+# 运行阶段 (使用 Nginx 托管静态文件)
+FROM nginx:alpine
+COPY --from=builder /app/dist /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+```
+
+### 2. 构建 Docker 镜像
+在构建时，你需要通过 `--build-arg` 传入你的 API Key。
+
+```bash
+# 请将 your_actual_key_here 替换为你的 Google Gemini API Key
+docker build --build-arg VITE_API_KEY=your_actual_key_here -t liaofan-destiny .
+```
+
+### 3. 运行容器
+构建完成后，启动容器并映射端口（例如映射到本地 8080 端口）：
+
+```bash
+docker run -d -p 8080:80 --name liaofan-app liaofan-destiny
+```
+
+现在，你可以通过浏览器访问 `http://localhost:8080` 来体验游戏。
+
 ## 目录结构
 
 ```
